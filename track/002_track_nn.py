@@ -376,12 +376,12 @@ def model_conv():
     all_layer_avg = []
     for index in range(1):
         x = sdrop(x_arr[index])
-        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(200, return_sequences=True))(x))
+        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(100, return_sequences=True))(x))
 
-        semantic = TimeDistributed(Dense(200,activation='tanh'))(x)
+        semantic = TimeDistributed(Dense(100,activation='tanh'))(x)
 
-        merged_1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(200,))(semantic)
-        merged_1_avg = Lambda(lambda x: K.mean(x, axis=1), output_shape=(200,))(semantic)
+        merged_1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(100,))(semantic)
+        merged_1_avg = Lambda(lambda x: K.mean(x, axis=1), output_shape=(100,))(semantic)
 
         all_layer.append(merged_1)
         all_layer_avg.append(merged_1_avg)
@@ -394,8 +394,8 @@ def model_conv():
 
     x = concatenate([x for x in all_layer]+[y for y in all_layer_avg] )
 
-    x = Dropout(0.2)(Activation(activation="relu")(BatchNormalization()(Dense(500)(x))))
-    x = Activation(activation="relu")(BatchNormalization()(Dense(200)(x)))
+    x = Dropout(0.2)(Activation(activation="relu")(BatchNormalization()(Dense(300)(x))))
+    x = Activation(activation="relu")(BatchNormalization()(Dense(100)(x)))
 
     pred = Dense(output_dim=2, activation='softmax')(x)
     model = Model(inputs=[seq for seq in seqs], outputs=pred)
