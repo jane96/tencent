@@ -403,10 +403,10 @@ def model_conv():
 
 
     hin_pr = Input(shape=(18,))
-    hinPr = Dense(18,activations = 'relu')(hin_pr)
+    hinPr = Dense(18,activation = 'relu')(hin_pr)
 
     hin_ind = Input(shape=(332,))
-    hinInd = Dense(50, activations='relu')(hin_ind)
+    hinInd = Dense(50, activation='relu')(hin_ind)
 
     x = concatenate([x for x in all_layer]+[y for y in all_layer_avg] + [hinPr,hinInd])
 
@@ -467,6 +467,12 @@ for co in columns_x2:
     count += 1
     print(co)
 
+pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click2.csv').iloc[:, 1:].values.tolist()
+ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').iloc[:, 1:].values.tolist()
+all_x.append(pr_data[:level])
+test_x.append(pr_data[level:])
+all_x.append(ind_data[:level])
+test_x.append(ind_data[level:])
 def generate_batch(batch_size, x, y):
     temp_x = []
     temp_y = []
@@ -504,7 +510,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     print('load struct finish...')
     arr_tr = []
     arr_va = []
-    for k in range(len(columns_x1)+len(columns_x2)):
+    for k in range(len(columns_x1)+len(columns_x2)+2):
         x1_tr, x1_va = np.array(all_x[k])[train_index], np.array(all_x[k])[test_index]
         arr_tr.append(x1_tr)
         arr_va.append(x1_va)
@@ -534,7 +540,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     score = model_age.predict(test_x, batch_size=1024, verbose=1)
     pd.DataFrame(score).to_csv('/mnt/2TB/jane96/tencent/store/6_16/score_{}.csv'.format(i+index_count), index=False)
     result = pd.DataFrame()
-    result['predicted_gender'] = score.argmax(1) + 1
+    result['predicted_age'] = score.argmax(1) + 1
     print('save model....')
     result.to_csv('/mnt/2TB/jane96/tencent/store/6_16/age_1_{}.csv'.format(i+index_count), index=False)
     # sub += score/skf.n_splits
