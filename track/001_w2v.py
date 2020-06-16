@@ -30,7 +30,7 @@ from keras.engine.topology import Layer
 
 
 def set_tokenizer(docs, split_char=' ', max_len=100):
-    tokenizer = Tokenizer(lower=True, char_level=False, split=split_char,filters=',')
+    tokenizer = Tokenizer(lower=False, char_level=False, split=split_char,filters=',')
     tokenizer.fit_on_texts(docs)
     X = tokenizer.texts_to_sequences(docs)
     maxlen = max_len
@@ -45,7 +45,7 @@ def trian_save_word2vec(docs, embed_size=300, save_name='w2v.txt', split_char=' 
         input_docs.append(i.split(split_char))
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
-    w2v = Word2Vec(input_docs, size=embed_size, sg=1, window=8, seed=1017, workers=16, min_count=1, iter=10)
+    w2v = Word2Vec(input_docs, size=embed_size, sg=1, window=12, seed=1017, workers=16, min_count=1, iter=10)
     w2v.wv.save_word2vec_format(save_name)
     print("w2v model done")
     return w2v
@@ -75,17 +75,17 @@ def get_embedding_matrix(word_index, embed_size=300, Emed_path="w2v_300.txt"):
 
 if __name__ == '__main__':
     for index in range(1):
-        data = pd.read_csv('/mnt/2TB/jane96/track/data/word_18.csv')
+        data = pd.read_csv('/mnt/2TB/jane96/track/w2v/word_18.csv')
         print('split word...')
-        temp = list(data['result'])
+        temp = list(data['result'].apply(lambda x : ' '.join(x.split(' '))))
         del data
         print('tokenzier word...')
         x, seq_index = set_tokenizer(temp, split_char=' ', max_len=18)
-        pd.DataFrame(x).to_csv('/mnt/2TB/jane96/track/w2v/w2v.csv')
+        pd.DataFrame(x).to_csv('/mnt/2TB/jane96/track/w2v/128_10/w2v.csv')
         print('sequence: ')
-        trian_save_word2vec(temp, embed_size=256, save_name='/mnt/2TB/jane96/track/w2v/w2v.txt',
+        trian_save_word2vec(temp, embed_size=128, save_name='/mnt/2TB/jane96/track/w2v/128_10/w2v.txt',
                             split_char=' ')
         print('embed word...')
 
-        embd = get_embedding_matrix(seq_index, embed_size=256, Emed_path='/mnt/2TB/jane96/track/w2v/w2v.txt')
-        pd.DataFrame(embd).to_pickle('/mnt/2TB/jane96/track/w2v/w2v.pickle')
+        embd = get_embedding_matrix(seq_index, embed_size=128, Emed_path='/mnt/2TB/jane96/track/w2v/128_10/w2v.txt')
+        pd.DataFrame(embd).to_pickle('/mnt/2TB/jane96/track/w2v/128_10/w2v.pickle')

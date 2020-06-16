@@ -337,7 +337,7 @@ def get_embedding_matrix(word_index, embed_size=300, Emed_path="w2v_300.txt"):
 embed_arr = []
 dims = [18]
 
-emb = pd.read_pickle('/mnt/2TB/jane96/track/w2v/w2v.pickle')
+emb = pd.read_pickle('/mnt/2TB/jane96/track/w2v/128_8/w2v.pickle')
 embed_arr.append(emb)
 
 
@@ -376,7 +376,7 @@ def model_conv():
     all_layer_avg = []
     for index in range(1):
         x = sdrop(x_arr[index])
-        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(100, return_sequences=True))(x))
+        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(200, return_sequences=True))(x))
 
         semantic = TimeDistributed(Dense(100,activation='tanh'))(x)
 
@@ -394,7 +394,7 @@ def model_conv():
 
     x = concatenate([x for x in all_layer]+[y for y in all_layer_avg] )
 
-    x = Dropout(0.2)(Activation(activation="relu")(BatchNormalization()(Dense(300)(x))))
+    x = Dropout(0.2)(Activation(activation="relu")(BatchNormalization()(Dense(250)(x))))
     x = Activation(activation="relu")(BatchNormalization()(Dense(100)(x)))
 
     pred = Dense(output_dim=2, activation='softmax')(x)
@@ -425,7 +425,7 @@ print('read input...')
 all_x = []
 test_x = []
 level = 500000
-data = pd.read_csv('/mnt/2TB/jane96/track/w2v/w2v.csv').iloc[:,1:]
+data = pd.read_csv('/mnt/2TB/jane96/track/w2v/128_8/w2v.csv').iloc[:,1:]
 all_x.append(data[:level])
 test_x.append(data[level:])
 
@@ -449,6 +449,7 @@ def save_train_img(history,filePath):
 
 from keras.callbacks import TensorBoard
 
+dir = 8
 count = 0
 for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     K.clear_session()
@@ -469,19 +470,19 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
         del x1_tr, x1_va
     y_tr, y_va = np.array(all_y)[train_index], np.array(all_y)[test_index]
     print('begining.....')
-    filepath = '/home/jane96/tencent/best_model_gender_{}_0.h5'.format(count)
+    filepath = '/mnt/2TB/jane96/track/store/6_15/{}/best_model_gender_{}_0.h5'.format(dir,count)
 
     checkpoint = ModelCheckpoint(
         filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max', save_weights_only=True)
     reduce_lr = ReduceLROnPlateau(
-        monitor='val_acc', factor=0.2, patience=1, min_lr=0.0001, verbose=1)
+        monitor='val_acc', factor=0.5, patience=1, min_lr=0.0001, verbose=1)
     earlystopping = EarlyStopping(
         monitor='val_acc', min_delta=0.0001, patience=3, verbose=1, mode='max')
 
-    vision = TensorBoard(log_dir='/mnt/2TB/jane96/track/store/6_15/1_{}'.format(i))
+    vision = TensorBoard(log_dir='/mnt/2TB/jane96/track/store/6_15/{}/1_{}'.format(dir,i))
 
     callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
-    history = model_age.fit(arr_tr, y_tr, batch_size=128, callbacks=callbacks, epochs=10, validation_data=(arr_va, y_va),
+    history = model_age.fit(arr_tr, y_tr, batch_size=128, callbacks=callbacks, epochs=12, validation_data=(arr_va, y_va),
                           verbose=1, shuffle=True)
 
 
@@ -490,13 +491,13 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     print('load model finish....')
 
     score = model_age.predict(test_x, batch_size=1024, verbose=1)
-    pd.DataFrame(score).to_csv('/mnt/2TB/jane96/track/store/6_15/scoresub_{}.csv'.format(i), index=False)
+    pd.DataFrame(score).to_csv('/mnt/2TB/jane96/track/store/6_15/{}/scoresub_{}.csv'.format(dir,i), index=False)
     result = pd.DataFrame()
-    result['predicted_gender'] = score.argmax(1) + 1
+    result['label'] = score.argmax(1)
     print('save model....')
-    result.to_csv('/mnt/2TB/jane96/track/store/6_15/sub_{}.csv'.format(i), index=False)
+    result.to_csv('/mnt/2TB/jane96/track/store/6_15/{}/sub_{}.csv'.format(dir,i), index=False)
 
-    save_train_img(history, '/mnt/2TB/jane96/track/store/6_15/track_{}.png'.format(i))
+    save_train_img(history, '/mnt/2TB/jane96/track/store/6_15/{}/track_{}.png'.format(dir,i))
     del model_age
     del history
 

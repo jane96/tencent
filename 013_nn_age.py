@@ -413,7 +413,7 @@ def model_conv():
     x = Dropout(0.2)(Activation(activation="relu")(BatchNormalization()(Dense(1000)(x))))
     x = Activation(activation="relu")(BatchNormalization()(Dense(500)(x)))
 
-    pred = Dense(output_dim=2, activation='softmax')(x)
+    pred = Dense(output_dim=10, activation='softmax')(x)
     model = Model(inputs=[seq for seq in seqs] +[hin_pr,hin_ind], outputs=pred)
 
     model = multi_gpu_model(model, 2)
@@ -428,7 +428,7 @@ def model_conv():
 
 
 gc.collect()
-y = (pd.read_pickle('/home/jane96/tencent/y_gender.pickle') - 1).values.tolist()
+y = (pd.read_pickle('/home/jane96/tencent/y_age.pickle') - 1).values.tolist()
 
 skf = StratifiedKFold(n_splits=5, random_state=1017, shuffle=True)
 sub = np.zeros((100000, 2))
@@ -495,7 +495,7 @@ count = 0
 for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     K.clear_session()
     print("start train....")
-    all_y = keras.utils.to_categorical(y, 2)
+    all_y = keras.utils.to_categorical(y, 10)
     print("FOLD | ", count + 1)
     print("###" * 35)
     gc.collect()
