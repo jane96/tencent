@@ -27,7 +27,7 @@ import gc
 import logging
 import gensim
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 print("start")
 from keras.engine.topology import Layer
@@ -378,10 +378,10 @@ def model_conv():
         x = sdrop(x_arr[index])
         x = Dropout(0.2)(Bidirectional(CuDNNLSTM(200, return_sequences=True))(x))
 
-        semantic = TimeDistributed(Dense(100,activation='tanh'))(x)
+        semantic = TimeDistributed(Dense(300,activation='tanh'))(x)
 
-        merged_1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(100,))(semantic)
-        merged_1_avg = Lambda(lambda x: K.mean(x, axis=1), output_shape=(100,))(semantic)
+        merged_1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(300,))(semantic)
+        merged_1_avg = Lambda(lambda x: K.mean(x, axis=1), output_shape=(300,))(semantic)
 
         all_layer.append(merged_1)
         all_layer_avg.append(merged_1_avg)
@@ -400,7 +400,7 @@ def model_conv():
     pred = Dense(output_dim=2, activation='softmax')(x)
     model = Model(inputs=[seq for seq in seqs], outputs=pred)
 
-    model = multi_gpu_model(model, 2)
+    # model = multi_gpu_model(model, 2)
     model.compile(
         loss="categorical_crossentropy",
         optimizer='adam',
@@ -449,7 +449,7 @@ def save_train_img(history,filePath):
 
 from keras.callbacks import TensorBoard
 
-dir = 8
+dir = 11
 count = 0
 for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     K.clear_session()
@@ -477,12 +477,12 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     reduce_lr = ReduceLROnPlateau(
         monitor='val_acc', factor=0.5, patience=1, min_lr=0.0001, verbose=1)
     earlystopping = EarlyStopping(
-        monitor='val_acc', min_delta=0.0001, patience=3, verbose=1, mode='max')
+        monitor='val_acc', min_delta=0.000025, patience=3, verbose=1, mode='max')
 
     vision = TensorBoard(log_dir='/mnt/2TB/jane96/track/store/6_15/{}/1_{}'.format(dir,i))
 
     callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
-    history = model_age.fit(arr_tr, y_tr, batch_size=128, callbacks=callbacks, epochs=12, validation_data=(arr_va, y_va),
+    history = model_age.fit(arr_tr, y_tr, batch_size=128, callbacks=callbacks, epochs=15, validation_data=(arr_va, y_va),
                           verbose=1, shuffle=True)
 
 

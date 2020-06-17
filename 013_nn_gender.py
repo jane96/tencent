@@ -27,7 +27,7 @@ import gc
 import logging
 import gensim
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 print("start")
 from keras.engine.topology import Layer
@@ -416,7 +416,7 @@ def model_conv():
     pred = Dense(output_dim=2, activation='softmax')(x)
     model = Model(inputs=[seq for seq in seqs] +[hin_pr,hin_ind], outputs=pred)
 
-    model = multi_gpu_model(model, 2)
+    # model = multi_gpu_model(model, 2)
     model.compile(
         loss="categorical_crossentropy",
         optimizer='adam',
@@ -467,8 +467,8 @@ for co in columns_x2:
     count += 1
     print(co)
 
-pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click2.csv').iloc[:, 1:].values.tolist()
-ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').iloc[:, 1:].values.tolist()
+pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click2.csv').astype(np.int32).iloc[:, 1:].values.tolist()
+ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').astype(np.int32).iloc[:, 1:].values.tolist()
 all_x.append(pr_data[:level])
 test_x.append(pr_data[level:])
 all_x.append(ind_data[:level])
@@ -496,7 +496,7 @@ def save_train_img(history,filePath):
 
 
 from keras.callbacks import TensorBoard
-index_count= 0
+index_count= 2
 count = 0
 for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     K.clear_session()
@@ -529,7 +529,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     vision = TensorBoard(log_dir='/mnt/2TB/jane96/tencent/store/6_16/1_{}'.format(i+index_count))
 
     callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
-    history = model_age.fit(arr_tr, y_tr, batch_size=512, callbacks=callbacks, epochs=7, validation_data=(arr_va, y_va),
+    history = model_age.fit(arr_tr, y_tr, batch_size=256, callbacks=callbacks, epochs=7, validation_data=(arr_va, y_va),
                           verbose=1, shuffle=True)
 
 
@@ -545,9 +545,9 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     result.to_csv('/mnt/2TB/jane96/tencent/store/6_16/age_1_{}.csv'.format(i+index_count), index=False)
     # sub += score/skf.n_splits
     # score.append(np.max(hist.history['val_acc']))
-    save_train_img(history, '/mnt/2TB/jane96/tencent/store/6_16/age_1_1_{}.png'.format(i+index_count))
+    # save_train_img(history, '/mnt/2TB/jane96/tencent/store/6_16/age_1_1_{}.png'.format(i+index_count))
     del model_age
-    del history
+    # del history
 
     print('save model finish....')
     count += 1

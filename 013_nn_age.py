@@ -403,7 +403,7 @@ def model_conv():
 
 
     hin_pr = Input(shape=(18,))
-    hinPr = Dense(18,activation='relu')(hin_pr)
+    hinPr = Dense(50,activation='relu')(hin_pr)
 
     hin_ind = Input(shape=(332,))
     hinInd = Dense(50,activation='relu')(hin_ind)
@@ -528,7 +528,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     vision = TensorBoard(log_dir='/mnt/2TB/jane96/tencent/store/6_16/1_{}'.format(i+index_count))
 
     callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
-    history = model_age.fit(arr_tr, y_tr, batch_size=512, callbacks=callbacks, epochs=7, validation_data=(arr_va, y_va),
+    history = model_age.fit(arr_tr, y_tr, batch_size=256, callbacks=callbacks, epochs=10, validation_data=(arr_va, y_va),
                           verbose=1, shuffle=True)
 
 
