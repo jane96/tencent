@@ -402,10 +402,10 @@ def model_conv():
 
 
 
-    hin_pr = Input(shape=(18,))
-    hinPr = Dense(18,activation = 'relu')(hin_pr)
+    hin_pr = Input(shape=(54,))
+    hinPr = Dense(54,activation = 'relu')(hin_pr)
 
-    hin_ind = Input(shape=(332,))
+    hin_ind = Input(shape=(100,))
     hinInd = Dense(50, activation='relu')(hin_ind)
 
     x = concatenate([x for x in all_layer]+[y for y in all_layer_avg] + [hinPr,hinInd])
@@ -444,7 +444,7 @@ level = 900000
 count = 0
 for co in columns_x1:
     # data = pd.read_csv('/home/jane96/tencent/200_128/aa_{}.csv'.format(co))
-    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co))
+    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co)).astype(np.int16)
     if data.shape[1] > dims[count]:
         data = data.iloc[:, 1:].values.tolist()
     else:
@@ -455,7 +455,7 @@ for co in columns_x1:
     count += 1
     print(co)
 for co in columns_x2:
-    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co))
+    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co)).astype(np.int16)
     # data = pd.read_csv('/mnt/2TB/jane96/w2v/glove_100_128/__{}.csv'.format(co))
     if data.shape[1] > dims[count]:
         data = data.iloc[:, 1:].values.tolist()
@@ -467,12 +467,14 @@ for co in columns_x2:
     count += 1
     print(co)
 
-pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click2.csv').astype(np.int32).iloc[:, 1:].values.tolist()
-ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').astype(np.int32).iloc[:, 1:].values.tolist()
+pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click_all.csv').iloc[:,1:].astype(np.float16).values.tolist()
+ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').iloc[:,1:101].astype(np.float16).values.tolist()
 all_x.append(pr_data[:level])
 test_x.append(pr_data[level:])
 all_x.append(ind_data[:level])
 test_x.append(ind_data[level:])
+del pr_data,ind_data
+print('pr_data','ind_data')
 def generate_batch(batch_size, x, y):
     temp_x = []
     temp_y = []
@@ -511,6 +513,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     arr_tr = []
     arr_va = []
     for k in range(len(columns_x1)+len(columns_x2)+2):
+        print(k)
         x1_tr, x1_va = np.array(all_x[k])[train_index], np.array(all_x[k])[test_index]
         arr_tr.append(x1_tr)
         arr_va.append(x1_va)
