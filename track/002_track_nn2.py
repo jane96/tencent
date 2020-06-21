@@ -338,12 +338,10 @@ def get_embedding_matrix(word_index, embed_size=300, Emed_path="w2v_300.txt"):
 
 
 embed_arr = []
-dims = [17,18]
+dims = [18]
 
-emb = pd.read_pickle('../data/w2v/128_10_process_fill/w2v.pickle')
+emb = pd.read_pickle('../data/w2v/128_10/w2v.pickle')
 embed_arr.append(emb)
-# emb = pd.read_pickle('../data/w2v/128_10/w2v.pickle')
-# embed_arr.append(emb)
 
 
 
@@ -377,28 +375,35 @@ def model_conv():
     sdrop = SpatialDropout1D(rate=0.2)
 
     print("start merge...")
+
+    sdrop = SpatialDropout1D(rate=0.2)
+    lstm_layer = Bidirectional(CuDNNLSTM(100, return_sequences=True,
+                                         kernel_initializer=glorot_uniform(seed=123)))
+    gru_layer = Bidirectional(CuDNNLSTM(100, return_sequences=True,
+                                        kernel_initializer=glorot_uniform(seed=123)))
+    cnn1d_layer = keras.layers.Conv1D(64, kernel_size=2, padding="valid", kernel_initializer="he_uniform")
+
+    avg_pool = GlobalAveragePooling1D()
+    max_pool = GlobalMaxPooling1D()
+
+
     all_layer = []
     all_layer_avg = []
     for index in range(1):
-        x = sdrop(x_arr[index])
-        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(300, return_sequences=True))(x))
+        x_arr[index] = sdrop(x_arr[index])
+        lstm1 = lstm_layer(x_arr[index])
+        gru1 = gru_layer(lstm1)
+        att_1 = Attention(dims[index])(lstm1)
+        att_3 = Attention(dims[index])(gru1)
+        cnn1 = cnn1d_layer(lstm1)
 
-        semantic = TimeDistributed(Dense(200,activation='tanh'))(x)
+        x_arr[index] =concatenate([att_1,att_3,avg_pool(cnn1),max_pool(cnn1),avg_pool(gru1),max_pool(gru1)])
+        print('model combine: ',index)
 
-        merged_1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(200,))(semantic)
-        merged_1_avg = Lambda(lambda x: K.mean(x, axis=1), output_shape=(200,))(semantic)
-
-        all_layer.append(merged_1)
-        all_layer_avg.append(merged_1_avg)
-        print('model combine: ', index)
-
-
-
-    # hin = Input(shape=(num_feature_input,))
-    # htime = Dense(16,activations = 'relu')(hin)
-
-    x = concatenate([x for x in all_layer]+[y for y in all_layer_avg] )
-
+    # merge = Multiply()([x for x in x_arr])
+    # merge = Dropout(0.2)(merge)
+    # x = concatenate([x for x in x_arr] + [merge] )
+    x = x_arr[0]
     x = Dropout(0.2)(Activation(activation="relu")(BatchNormalization()(Dense(200)(x))))
     x = Activation(activation="relu")(BatchNormalization()(Dense(100)(x)))
 
@@ -430,12 +435,9 @@ print('read input...')
 all_x = []
 test_x = []
 level = 500000
-data = pd.read_csv('../data/w2v/128_10_process_fill/w2v.csv').iloc[:,1:]
+data = pd.read_csv('../data/w2v/128_10/w2v.csv').iloc[:,1:]
 all_x.append(data[:level])
 test_x.append(data[level:])
-# data = pd.read_csv('../data/w2v/128_10/w2v.csv').iloc[:,1:]
-# all_x.append(data[:level])
-# test_x.append(data[level:])
 
 
 
@@ -463,7 +465,7 @@ def save_history_text(history,filePath):
 
 from keras.callbacks import TensorBoard
 
-dir =13
+dir = 3
 count = 0
 for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     K.clear_session()
@@ -491,12 +493,12 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     reduce_lr = ReduceLROnPlateau(
         monitor='val_acc', factor=0.5, patience=1, min_lr=0.0001, verbose=1)
     earlystopping = EarlyStopping(
-        monitor='val_acc', min_delta=0.000025, patience=5, verbose=1, mode='max')
+        monitor='val_acc', min_delta=0.000025, patience=3, verbose=1, mode='max')
 
     vision = TensorBoard(log_dir='../data/store/6_20/{}/1_{}'.format(dir,i))
 
     callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
-    history = model_age.fit(arr_tr, y_tr, batch_size=128, callbacks=callbacks, epochs=15, validation_data=(arr_va, y_va),
+    history = model_age.fit(arr_tr, y_tr, batch_size=256, callbacks=callbacks, epochs=15, validation_data=(arr_va, y_va),
                           verbose=1, shuffle=True)
 
 

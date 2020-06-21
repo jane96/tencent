@@ -45,7 +45,7 @@ def trian_save_word2vec(docs, embed_size=300, save_name='w2v.txt', split_char=' 
         input_docs.append(i.split(split_char))
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
-    w2v = Word2Vec(input_docs, size=embed_size, sg=1, window=12, seed=1017, workers=16, min_count=1, iter=10)
+    w2v = Word2Vec(input_docs, size=embed_size, sg=1, window=10, seed=1017, workers=16, min_count=1, iter=10)
     w2v.wv.save_word2vec_format(save_name)
     print("w2v model done")
     return w2v
@@ -75,17 +75,17 @@ def get_embedding_matrix(word_index, embed_size=300, Emed_path="w2v_300.txt"):
 
 if __name__ == '__main__':
     for index in range(1):
-        data = pd.read_csv('/mnt/2TB/jane96/track/w2v/word_18.csv')
+        data = pd.read_csv('/media/yza/f/py/tencent/data/process/one_17_process_fill.csv')
         print('split word...')
-        temp = list(data['result'].apply(lambda x : ' '.join(x.split(' '))))
+        temp = list(data['all'].apply(lambda x : ' '.join(x.split(' '))))
         del data
         print('tokenzier word...')
-        x, seq_index = set_tokenizer(temp, split_char=' ', max_len=18)
-        pd.DataFrame(x).to_csv('/mnt/2TB/jane96/track/w2v/128_10/w2v.csv')
+        x, seq_index = set_tokenizer(temp, split_char=' ', max_len=17)
+        pd.DataFrame(x).to_csv('../data/w2v/128_10_process_fill/w2v.csv')
         print('sequence: ')
-        trian_save_word2vec(temp, embed_size=128, save_name='/mnt/2TB/jane96/track/w2v/128_10/w2v.txt',
+        trian_save_word2vec(temp, embed_size=128, save_name='../data/w2v/128_10_process_fill/w2v.txt',
                             split_char=' ')
         print('embed word...')
 
-        embd = get_embedding_matrix(seq_index, embed_size=128, Emed_path='/mnt/2TB/jane96/track/w2v/128_10/w2v.txt')
-        pd.DataFrame(embd).to_pickle('/mnt/2TB/jane96/track/w2v/128_10/w2v.pickle')
+        embd = get_embedding_matrix(seq_index, embed_size=128, Emed_path='../data/w2v/128_10_process_fill/w2v.txt')
+        pd.DataFrame(embd).to_pickle('../data/w2v/128_10_process_fill/w2v.pickle')
