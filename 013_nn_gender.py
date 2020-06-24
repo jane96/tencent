@@ -27,7 +27,7 @@ import gc
 import logging
 import gensim
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 print("start")
 from keras.engine.topology import Layer
@@ -341,14 +341,14 @@ embed_arr = []
 dims = [300,300,300,100,100]
 for co in columns_x1:
     # emb = pd.read_pickle('/home/jane96/tencent/200_60/_{}.pickle'.format(co))
-    emb = pd.read_pickle('/mnt/2TB/jane96/w2v/w2v_300_128/__{}.pickle'.format(co))
+    emb = pd.read_pickle('/mnt/2TB/jane96/w2v/w2v_300_128/__{}.pickle'.format(co)).astype(np.float16)
     embed_arr.append(emb)
     del emb
     print('read:', co, '')
 columns_x2 = [ 'ad']
 
 for co in columns_x2:
-    emb = pd.read_pickle('/mnt/2TB/jane96/w2v/w2v_300_128/__{}.pickle'.format(co))
+    emb = pd.read_pickle('/mnt/2TB/jane96/w2v/w2v_300_128/__{}.pickle'.format(co)).astype(np.float16)
 
     embed_arr.append(emb)
     del emb
@@ -389,7 +389,7 @@ def model_conv():
     all_layer_avg = []
     for index in range(len(columns_x1)+len(columns_x2)):
         x = sdrop(x_arr[index])
-        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(200, return_sequences=True))(x))
+        x = Dropout(0.2)(Bidirectional(CuDNNLSTM(300, return_sequences=True))(x))
 
         semantic = TimeDistributed(Dense(400,activation='tanh'))(x)
 
@@ -400,12 +400,10 @@ def model_conv():
         all_layer_avg.append(merged_1_avg)
         print('model combine: ', index)
 
+    hin_pr = Input(shape=(18,))
+    hinPr = Dense(18,activation = 'relu')(hin_pr)
 
-
-    hin_pr = Input(shape=(54,))
-    hinPr = Dense(54,activation = 'relu')(hin_pr)
-
-    hin_ind = Input(shape=(100,))
+    hin_ind = Input(shape=(332,))
     hinInd = Dense(50, activation='relu')(hin_ind)
 
     x = concatenate([x for x in all_layer]+[y for y in all_layer_avg] + [hinPr,hinInd])
@@ -414,14 +412,13 @@ def model_conv():
     x = Activation(activation="relu")(BatchNormalization()(Dense(500)(x)))
 
     pred = Dense(output_dim=2, activation='softmax')(x)
-    model = Model(inputs=[seq for seq in seqs] +[hin_pr,hin_ind], outputs=pred)
+    model = Model(inputs = [seq for seq in seqs]  + [hin_pr,hin_ind], outputs = pred)
 
-    # model = multi_gpu_model(model, 2)
+    model = multi_gpu_model(model, 2)
     model.compile(
         loss="categorical_crossentropy",
         optimizer='adam',
         metrics=["accuracy"]
-
     )
     model.summary()
     return model
@@ -444,7 +441,7 @@ level = 900000
 count = 0
 for co in columns_x1:
     # data = pd.read_csv('/home/jane96/tencent/200_128/aa_{}.csv'.format(co))
-    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co)).astype(np.int16)
+    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co))
     if data.shape[1] > dims[count]:
         data = data.iloc[:, 1:].values.tolist()
     else:
@@ -455,7 +452,7 @@ for co in columns_x1:
     count += 1
     print(co)
 for co in columns_x2:
-    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co)).astype(np.int16)
+    data = pd.read_csv('/mnt/2TB/jane96/w2v/w2v_300_128/_{}.csv'.format(co))
     # data = pd.read_csv('/mnt/2TB/jane96/w2v/glove_100_128/__{}.csv'.format(co))
     if data.shape[1] > dims[count]:
         data = data.iloc[:, 1:].values.tolist()
@@ -467,8 +464,8 @@ for co in columns_x2:
     count += 1
     print(co)
 
-pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click_all.csv').iloc[:,1:].astype(np.float16).values.tolist()
-ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').iloc[:,1:101].astype(np.float16).values.tolist()
+pr_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/pr_click2.csv').iloc[:,1:].astype(np.float16).values.tolist()
+ind_data = pd.read_csv('/mnt/2TB/jane96/w2v/pr_ind/ind_click2.csv').iloc[:,1:].astype(np.float16).values.tolist()
 all_x.append(pr_data[:level])
 test_x.append(pr_data[level:])
 all_x.append(ind_data[:level])
@@ -498,7 +495,7 @@ def save_train_img(history,filePath):
 
 
 from keras.callbacks import TensorBoard
-index_count= 2
+index_count= 0
 count = 0
 for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     K.clear_session()
@@ -529,7 +526,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     earlystopping = EarlyStopping(
         monitor='val_acc', min_delta=0.0001, patience=3, verbose=1, mode='max')
 
-    vision = TensorBoard(log_dir='/mnt/2TB/jane96/tencent/store/6_16/1_{}'.format(i+index_count))
+    vision = TensorBoard(log_dir='/mnt/2TB/jane96/tencent/store/6_20/1_{}'.format(i+index_count))
 
     callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
     history = model_age.fit(arr_tr, y_tr, batch_size=256, callbacks=callbacks, epochs=7, validation_data=(arr_va, y_va),
@@ -541,23 +538,23 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y[:level])):
     print('load model finish....')
     # oof_pred[test_index] = model_age.predict([x1_va, x3_va],batch_size=2048,verbose=1)
     score = model_age.predict(test_x, batch_size=1024, verbose=1)
-    pd.DataFrame(score).to_csv('/mnt/2TB/jane96/tencent/store/6_16/score_{}.csv'.format(i+index_count), index=False)
+    pd.DataFrame(score).to_csv('/mnt/2TB/jane96/tencent/store/6_20/score_{}.csv'.format(i+index_count), index=False)
     result = pd.DataFrame()
     result['predicted_age'] = score.argmax(1) + 1
     print('save model....')
-    result.to_csv('/mnt/2TB/jane96/tencent/store/6_16/age_1_{}.csv'.format(i+index_count), index=False)
-    # sub += score/skf.n_splits
+    result.to_csv('/mnt/2TB/jane96/tencent/store/6_20/age_1_{}.csv'.format(i+index_count), index=False)
+    # sub += score.argmax(1) + 1
     # score.append(np.max(hist.history['val_acc']))
-    # save_train_img(history, '/mnt/2TB/jane96/tencent/store/6_16/age_1_1_{}.png'.format(i+index_count))
+    save_train_img(history, '/mnt/2TB/jane96/tencent/store/6_20/age_1_1_{}.png'.format(i+index_count))
     del model_age
-    # del history
+    del history
 
     print('save model finish....')
     count += 1
 # print('acc:', np.mean(score))
 submit = pd.DataFrame()
 submit['predicted_age'] = sub.argmax(1) + 1
-submit.to_csv('/mnt/2TB/jane96/tencent/store/6_16/1_agender_final.csv', index=False)
+submit.to_csv('/mnt/2TB/jane96/tencent/store/6_20/1_agender_final.csv', index=False)
 
 
 
