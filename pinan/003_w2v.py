@@ -75,17 +75,17 @@ def get_embedding_matrix(word_index, embed_size=300, Emed_path="w2v_300.txt"):
 
 if __name__ == '__main__':
     for index in range(1):
-        data = pd.read_csv('data/w2v/allword.csv')
+        data = pd.read_csv('/mnt/2TB/jane96/pingan/w2v/question.csv')
         print('split word...')
-        temp = list(data['word'])
+        temp = list(data['0'])
         del data
         print('tokenzier word...')
-        x, seq_index = set_tokenizer(temp, split_char=' ', max_len=160)
-        pd.DataFrame(x).to_csv('data/w2v/128_10/w2v.csv')
+        x, seq_index = set_tokenizer(temp, split_char=' ', max_len=100)
+        pd.DataFrame(x).to_csv('/mnt/2TB/jane96/pingan/w2v/128_10/question.csv')
         print('sequence: ')
-        trian_save_word2vec(temp, embed_size=128, save_name='data/w2v/128_10/w2v.txt',
+        trian_save_word2vec(temp, embed_size=128, save_name='/mnt/2TB/jane96/pingan/w2v/128_10/question.txt',
                             split_char=' ')
         print('embed word...')
 
-        embd = get_embedding_matrix(seq_index, embed_size=128, Emed_path='data/w2v/128_10/w2v.txt')
-        pd.DataFrame(embd).to_pickle('data/w2v/128_10/w2v.pickle')
+        embd = get_embedding_matrix(seq_index, embed_size=128, Emed_path='/mnt/2TB/jane96/pingan/w2v/128_10/question.txt')
+        pd.DataFrame(embd).to_pickle('/mnt/2TB/jane96/pingan/w2v/128_10/question.pickle')

@@ -1,15 +1,25 @@
 
 import pandas as pd
-# test = pd.read_excel('data/base/public_test.xlsx')
-train = pd.read_excel('data/base/train.xlsx')
+data = pd.read_csv('data/store/6_20/13/submission.csv')
+test = pd.read_excel('/mnt/2TB/jane96/pingan/base/public_test.xlsx')
+train = pd.read_excel('/mnt/2TB/jane96/pingan/base/train.xlsx')['label']
 y = train.values.tolist()
 yLable = pd.Series(y).drop_duplicates().values
 
 for index in range(1):
     sub = pd.read_csv('data/store/6_20/13/sub_0.csv').apply(lambda x : yLable[x])
 
-result = test[['id','catgory']]
-result['label'] = sub
-result = result[result['catgory']==0]
-result = result['id'] + '\t' +  result['label']
-result.to_csv('data/store/6_20/13/submission.csv',index=False,header=None)
+result = test[['id','catgory']].values.tolist()
+all = []
+count = 0
+sub = sub.values.tolist()
+
+for index in range(len(result)):
+    if(result[index][1] == 0):
+        all.append(result[index][0] + '\t' + sub[count][0])
+        count += 1
+
+
+
+
+pd.Series(all).to_csv('data/store/6_20/13/submissions.csv',index=False,header=None)

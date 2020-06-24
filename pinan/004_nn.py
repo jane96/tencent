@@ -338,12 +338,12 @@ def get_embedding_matrix(word_index, embed_size=300, Emed_path="w2v_300.txt"):
 
 
 embed_arr = []
-dims = [160,18]
+dims = [100,100]
 
-emb = pd.read_pickle('data/w2v/128_10/w2v.pickle')
+emb = pd.read_pickle('/mnt/2TB/jane96/pingan/w2v/128_10/question.pickle')
 embed_arr.append(emb)
-# emb = pd.read_pickle('../data/w2v/128_10/w2v.pickle')
-# embed_arr.append(emb)
+emb = pd.read_pickle('/mnt/2TB/jane96/pingan/w2v/128_10/answer.pickle')
+embed_arr.append(emb)
 
 
 
@@ -351,7 +351,7 @@ embed_arr.append(emb)
 def model_conv():
     x_arr = []
     emb_layer = []
-    for index in range(1):
+    for index in range(2):
         layer = Embedding(
             input_dim=embed_arr[index].shape[0],
             output_dim=embed_arr[index].shape[1],
@@ -362,13 +362,13 @@ def model_conv():
         emb_layer.append(layer)
         print('emb layer:', index)
     seqs = []
-    for index in range(1):
+    for index in range(2):
         seq = Input(shape=(dims[index],))
         seqs.append(seq)
         print('seqs :', index)
         del seq
 
-    for index in range(1):
+    for index in range(2):
         now = emb_layer[index](seqs[index])
         x_arr.append(now)
         print('seqs emb :', index)
@@ -379,7 +379,7 @@ def model_conv():
     print("start merge...")
     all_layer = []
     all_layer_avg = []
-    for index in range(1):
+    for index in range(2):
         x = sdrop(x_arr[index])
         x = Dropout(0.2)(Bidirectional(CuDNNLSTM(300, return_sequences=True))(x))
 
@@ -417,7 +417,9 @@ def model_conv():
 
 
 gc.collect()
-y = (pd.read_excel('data/base/train.xlsx')['label']).values.tolist()
+trainy= pd.read_excel('/mnt/2TB/jane96/pingan/base/train.xlsx')
+trainy = trainy[trainy['category'] == 0]
+y = (trainy['label']).values.tolist()
 
 skf = StratifiedKFold(n_splits=5, random_state=1017, shuffle=True)
 sub = np.zeros((100000, 2))
@@ -429,13 +431,13 @@ count = 0
 print('read input...')
 all_x = []
 test_x = []
-level = 104343
-data = pd.read_csv('data/w2v/128_10/w2v.csv').iloc[:,1:]
+level = 50652
+data = pd.read_csv('/mnt/2TB/jane96/pingan/w2v/128_10/question.csv').iloc[:,1:]
 all_x.append(data[:level])
 test_x.append(data[level:])
-# data = pd.read_csv('../data/w2v/128_10/w2v.csv').iloc[:,1:]
-# all_x.append(data[:level])
-# test_x.append(data[level:])
+data = pd.read_csv('/mnt/2TB/jane96/pingan/w2v/128_10/answer.csv').iloc[:,1:]
+all_x.append(data[:level])
+test_x.append(data[level:])
 
 
 
@@ -460,7 +462,26 @@ def save_history_text(history,filePath):
     f = open(filePath.format(dir),'w')
     np.savetxt(f,train_acc + val_acc)
     f.close()
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+class Metrics(Callback):
+    def on_train_begin(self, logs={}):
+        self.val_f1s = []
+        self.val_recalls = []
+        self.val_precisions = []
 
+    def on_epoch_end(self, epoch, logs={}):
+        val_predict = (np.asarray(self.model.predict(self.validation_data[0:2]))).round()
+        val_targ = self.validation_data[2]
+        _val_f1 = f1_score(val_targ, val_predict,average='macro')
+        _val_recall = recall_score(val_targ, val_predict,average='macro')
+        _val_precision = precision_score(val_targ, val_predict,average='macro')
+        self.val_f1s.append(_val_f1)
+        self.val_recalls.append(_val_recall)
+        self.val_precisions.append(_val_precision)
+        print("val_f1: %f  val_precision: %f  val_recall %f" %(_val_f1, _val_precision, _val_recall))
+        return
+
+metrics = Metrics()
 from keras.callbacks import TensorBoard
 yLable = pd.Series(y).drop_duplicates().values
 y_index = dict()
@@ -481,7 +502,7 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y_label[:level
     print('load struct finish...')
     arr_tr = []
     arr_va = []
-    for k in range(1):
+    for k in range(2):
         x1_tr, x1_va = np.array(all_x[k])[train_index], np.array(all_x[k])[test_index]
         arr_tr.append(x1_tr)
         arr_va.append(x1_va)
@@ -499,8 +520,8 @@ for i, (train_index, test_index) in enumerate(skf.split(all_x[0], y_label[:level
 
     vision = TensorBoard(log_dir='data/store/6_20/{}/1_{}'.format(dir,i))
 
-    callbacks = [checkpoint,reduce_lr,  earlystopping,vision]
-    history = model_age.fit(arr_tr, y_tr, batch_size=256, callbacks=callbacks, epochs=5, validation_data=(arr_va, y_va),
+    callbacks = [checkpoint,reduce_lr,  earlystopping,vision,metrics]
+    history = model_age.fit(arr_tr, y_tr, batch_size=512, callbacks=callbacks, epochs=15, validation_data=(arr_va, y_va),
                           verbose=1, shuffle=True)
 
 
